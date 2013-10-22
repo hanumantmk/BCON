@@ -1,0 +1,81 @@
+# libbcon
+
+libbcon is a C library wrapping up libbson and meant to provide convenient
+syntactic sugar to allow inline construction of complex bson objects in a
+declarative manner.
+
+
+# Building
+
+## From Git
+
+```sh
+$ ./autogen.sh
+$ ./configure
+$ make
+$ sudo make install
+```
+
+You can run unit tests with
+
+```sh
+$ make test
+```
+
+# Overview
+
+## Example
+
+```c
+bcon_t * bcon = BCON(
+    "name",       "John Doe",
+    "age",        BCON_INT32(10),
+    "interests",  BCON_ARRAY( "music", "dance" ),
+    "education",  BCON_DOC(
+        "school",   "University",
+        "duration", BCON_ARRAY( BCON_INT32(2003), BCON_INT32(2001) ),
+    )
+);
+```
+
+## Implementation
+
+The basic idea behind libbcon is to provide an embedded language that
+internally calls libbson's bson_append_* methods.  It defines this language in
+the form of a stream of bcon_t tokens.  We provide some syntactic sugar in the
+form of macros which wrap bare strings with bracket initializers and special
+tokens which allow insertion of non-string types.
+
+Let's look at a macro expanded version of the above
+
+```c
+bcon_t * bcon = ((bcon_t []){
+    { "name" }, { "John Doe" },
+    { "age" },  { BCON_MAGIC }, { .type = BCONT_INT32 }, { .INT32 = (10) },
+    { "interests" }, { BCON_MAGIC }, { .type = BCONT_BCON_ARRAY }, { .BCON_ARRAY = (((bcon_t []){
+        { "music" }, { "dance" }, { 0 }
+    })) },
+    { "education" }, { BCON_MAGIC }, { .type = BCONT_BCON_DOCUMENT }, { .BCON_DOCUMENT = (((bcon_t []){
+        { "school" }, { "University" },
+        { "duration" }, { BCON_MAGIC }, { .type = BCONT_BCON_ARRAY }, { .BCON_ARRAY = (((bcon_t []){
+            { BCON_MAGIC }, { .type = BCONT_INT32 }, { .INT32 = (2003) },
+            { BCON_MAGIC }, { .type = BCONT_INT32 }, { .INT32 = (2001) },
+            { 0 }
+        })) },
+        {0},
+        { 0 }
+    })) },
+    { 0 }
+});
+```
+
+Note:
+
+* Each element is wrapped in {}'s.  This makes each element an initialization of the bcon_t union.
+* Special types expand into
+    1. BCON_MAGIC - A magic char * which indicates a special token
+    2. .type - The type of the token
+    3. .XXX - Storage for the token value.  The union includes a variety of
+       members to allow for compile time type checks
+* BCON, BCON_DOC() and BCON_ARRAY() cast to a bcon_t[] and end with 0
+* Empty array members (such as a trailing ',') conver to 0

@@ -1,0 +1,13 @@
+char *	string
+double	double
+union bcon *	bcon_document
+union bcon *	bcon_array
+char *	oid
+bson_bool_t	bool
+time_t	timestamp
+char *	symbol
+bson_int32_t	int32
+bson_int64_t	int64
+bcon_binary_t *	bin
+bson_t *	bson_array
+bson_t *	bson_document

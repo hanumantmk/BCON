@@ -1,0 +1,32 @@
+lib_LTLIBRARIES = libbcon.la
+
+REGULAR_H_FILES = \
+	bcon/bcon.h \
+	bcon/bcon_pp.h
+
+BUILT_SOURCES = \
+	bcon/bcon_enum.h \
+	bcon/bcon_enum_str.h \
+	bcon/bcon_indirection.h \
+	bcon/bcon_sub_symbols.h \
+	bcon/bcon_gen_macros.h \
+	bcon/bcon_union.h
+
+$(BUILT_SOURCES) : bcon/gen_headers.pl bcon/bcon_types.txt
+	cd bcon; ./gen_headers.pl
+
+libbcon_la_SOURCES = \
+	$(REGULAR_H_FILES) \
+	$(BUILT_SOURCES) \
+	bcon/bcon.c
+
+libbcon_la_CPPFLAGS = \
+	$(BSON_CFLAGS)
+
+libbcon_la_LIBADD = \
+	$(BSON_LIBS)
+
+CLEANFILES =
+
+CLEANFILES += \
+	$(BUILT_SOURCES)
