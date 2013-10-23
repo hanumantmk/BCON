@@ -67,7 +67,7 @@ bcon_type_t bcon_token(bcon_t ** stream, void ** out)
 
 int bcon_to__bson(bcon_t * in, bson_t * bson, int is_array)
 {
-    void * obj;
+    void * obj = NULL;
     bcon_type_t type;
 
     int i = 0;
@@ -254,7 +254,7 @@ void bcon_DUMP_AS_JSON(bcon_t * in)
 void bcon__DUMP(bcon_t ** in, int is_array, UT_string * s, int indent)
 {
     bcon_type_t type;
-    void * ptr;
+    void * ptr = NULL;
     char * key;
     bcon_t * child;
     int keep_going = 1;
