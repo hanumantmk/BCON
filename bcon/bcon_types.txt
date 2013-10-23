@@ -1,13 +1,22 @@
-char *	string
+char *	utf8
 double	double
+bson_t *	bson_document
+bson_t *	bson_array
+bcon_binary_t *	bin
+	undefined
+bson_oid_t *	bson_oid
+bson_bool_t	bool
+struct timeval * 	date_time
+	null
+bcon_regex_t *	bcon_regex
+bcon_dbpointer_t *	bcon_dbpointer
+bcon_code_t *	bcon_code
+char *	symbol
+bcon_code_t *	bcon_codewscope
+bson_int32_t	int32
+bcon_timestamp_t *	timestamp
+bson_int64_t	int64
+	maxkey
+	minkey
 union bcon *	bcon_document
 union bcon *	bcon_array
-char *	oid
-bson_bool_t	bool
-time_t	timestamp
-char *	symbol
-bson_int32_t	int32
-bson_int64_t	int64
-bcon_binary_t *	bin
-bson_t *	bson_array
-bson_t *	bson_document

@@ -27,18 +27,18 @@
 
 #define BCON_ADD_BRACKETS(v) { v }
 #define BCON(...) ((bcon_t []){ BCON_MACRO_MAP( BCON_ADD_BRACKETS, (,), __VA_ARGS__, 0 ) })
-#define BCON_NULL BCON_MAGIC, .type = BCONT_NULL, 0
 #include "bcon_sub_symbols.h"
 #define BCON_DOC(...) BCON_BCON_DOCUMENT(BCON( __VA_ARGS__ ))
 #define BCON_ARRAY(...) BCON_BCON_ARRAY(BCON( __VA_ARGS__ ))
-#define BCON_BINARY(subtype, binary, length) BCON_BIN(((bcon_binary_t []){subtype, (uint8_t *)(binary), length}))
+#define BCON_BINARY(subtype, binary, length) BCON_BIN(((bcon_binary_t []){{subtype, (uint8_t *)(binary), length}}))
+#define BCON_CODEWSCOPE(code, ...) BCON_BCON_CODEWSCOPE(((bcon_code_t []){{code, BCON( __VA_ARGS__ )}}))
+#define BCON_CODE(code) BCON_BCON_CODEWSCOPE(((bcon_code_t []){{code, 0}}))
 
 extern char * BCON_MAGIC;
 
 typedef enum {
-    BCONT_END,
-    BCONT_NULL,
 #include "bcon_enum.h"
+    BCONT_END,
     BCONT_ERROR,
 } bcon_type_t;
 
@@ -47,6 +47,26 @@ typedef struct bcon_binary {
     bson_uint8_t * binary;
     bson_uint32_t length;
 } bcon_binary_t;
+
+typedef struct bcon_regex {
+    char * regex;
+    char * flags;
+} bcon_regex_t;
+
+typedef struct bcon_code {
+    char * code;
+    union bcon * scope;
+} bcon_code_t;
+
+typedef struct bcon_dbpointer {
+    char * collection;
+    bson_oid_t * oid;
+} bcon_dbpointer_t;
+
+typedef struct bcon_timestamp {
+    bson_uint32_t timestamp;
+    bson_uint32_t increment;
+} bcon_timestamp_t;
 
 typedef union bcon {
 #include "bcon_union.h"

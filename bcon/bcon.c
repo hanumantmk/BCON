@@ -25,9 +25,8 @@
 char * BCON_MAGIC = "BCON_MAGIC";
 
 static char * BCON_TYPE_ENUM_STR[] = {
-    "BCONT_END",
-    "BCONT_NULL",
 #include "bcon_enum_str.h"
+    "BCONT_END",
     "BCONT_ERROR"
 };
 
@@ -38,10 +37,10 @@ bcon_type_t bcon_token(bcon_t ** stream, void ** out)
     bcon_type_t type;
     bcon_t * in;
 
-    if ((*stream)->STRING == NULL) {
+    if ((*stream)->UTF8 == NULL) {
         type = BCONT_END;
     } else {
-        if ((*stream)->STRING == BCON_MAGIC) {
+        if ((*stream)->UTF8 == BCON_MAGIC) {
             (*stream)++;
 
             type = (*stream)->type;
@@ -56,7 +55,7 @@ bcon_type_t bcon_token(bcon_t ** stream, void ** out)
                     break;
             };
         } else {
-            type = BCONT_STRING;
+            type = BCONT_UTF8;
             *out = (void *)*stream;
         }
     }
@@ -85,7 +84,7 @@ int bcon_to__bson(bcon_t * in, bson_t * bson, int is_array)
             if (type == BCONT_END) return 0;
 
             // TODO deal with indirection here
-            assert(type == BCONT_STRING);
+            assert(type == BCONT_UTF8);
 
             key = *((char **)obj);
         }
@@ -111,7 +110,7 @@ char * bcon_to_bson(bcon_t * in, bson_t * bson)
 {
     int r = bcon_to__bson(in, bson, 0);
 
-    if (r == 1) {
+    if (r) {
         return bcon_dump(in);
     } else {
         return NULL;
@@ -125,11 +124,11 @@ int bcon_to_bson_put_value(bson_t * bson, const char * key, void * val, bcon_typ
     bcon_type_t val_type = type;
 
     switch(val_type) {
+        case BCONT_UTF8:
+            bson_append_utf8(bson, key, -1, *((char **)val), -1);
+            break;
         case BCONT_DOUBLE:
             bson_append_double(bson, key, -1, *((double *)val));
-            break;
-        case BCONT_STRING:
-            bson_append_utf8(bson, key, -1, *((char **)val), -1);
             break;
         case BCONT_BCON_DOCUMENT:
             bson_append_document_begin(bson, key, -1, &child);
@@ -141,42 +140,80 @@ int bcon_to_bson_put_value(bson_t * bson, const char * key, void * val, bcon_typ
             if (bcon_to__bson(*((bcon_t **)val), &child, 1)) return 1;
             bson_append_array_end(bson, &child);
             break;
-        case BCONT_OID: {
-            bson_oid_t oid;
-
-            if (val) {
-                bson_oid_init_from_string(&oid, *((char **)val));
-            } else {
-                bson_oid_init(&oid, NULL);
-            }
-
-            bson_append_oid(bson, key, -1, &oid);
-            break;
-        }
-        case BCONT_BOOL:
-            bson_append_bool(bson, key, -1, *((bson_bool_t *)val));
-            break;
-        case BCONT_TIMESTAMP:
-            bson_append_date_time(bson, key, -1, *((bson_int64_t *)val));
-            break;
-        case BCONT_NULL:
-            bson_append_null(bson, key, -1);
-            break;
-        case BCONT_SYMBOL:
-            bson_append_symbol(bson, key, -1, *((char **)val), -1);
-            break;
-        case BCONT_INT32:
-            bson_append_int32(bson, key, -1, *((bson_int32_t *)val));
-            break;
-        case BCONT_INT64:
-            bson_append_int64(bson, key, -1, *((bson_int64_t *)val));
-            break;
         case BCONT_BIN: {
             bcon_binary_t * z = *((bcon_binary_t **)val);
 
             bson_append_binary(bson, key, -1, z->subtype, z->binary, z->length);
             break;
         }
+        case BCONT_UNDEFINED:
+            bson_append_undefined(bson, key, -1);
+            break;
+        case BCONT_BSON_OID:
+            bson_append_oid(bson, key, -1, *((bson_oid_t **)val));
+            break;
+        case BCONT_BOOL:
+            bson_append_bool(bson, key, -1, *((bson_bool_t *)val));
+            break;
+        case BCONT_DATE_TIME:
+            bson_append_timeval(bson, key, -1, *((struct timeval **)val));
+            break;
+        case BCONT_NULL:
+            bson_append_null(bson, key, -1);
+            break;
+        case BCONT_BCON_REGEX: {
+            bcon_regex_t * r = *((bcon_regex_t **)val);
+
+            bson_append_regex(bson, key, -1, r->regex, r->flags);
+            break;
+        }
+        case BCONT_BCON_DBPOINTER: {
+            bcon_dbpointer_t * db = *((bcon_dbpointer_t **)val);
+
+            bson_append_dbpointer(bson, key, -1, db->collection, db->oid);
+            break;
+        }
+        case BCONT_BCON_CODE: {
+            bcon_code_t * code = *((bcon_code_t **)val);
+
+            bson_append_code(bson, key, -1, code->code);
+            break;
+        }
+        case BCONT_SYMBOL:
+            bson_append_symbol(bson, key, -1, *((char **)val), -1);
+            break;
+        case BCONT_BCON_CODEWSCOPE: {
+            bcon_code_t * code = *((bcon_code_t **)val);
+
+            bson_t * child = bson_new();
+            int r = bcon_to__bson(code->scope, child, 0);
+
+            if (! r) bson_append_code_with_scope(bson, key, -1, code->code, child);
+
+            bson_destroy(child);
+
+            if (r) return r;
+
+            break;
+        }
+        case BCONT_INT32:
+            bson_append_int32(bson, key, -1, *((bson_int32_t *)val));
+            break;
+        case BCONT_TIMESTAMP: {
+            bcon_timestamp_t * ts = *((bcon_timestamp_t **)val);
+
+            bson_append_timestamp(bson, key, -1, ts->timestamp, ts->increment);
+            break;
+        }
+        case BCONT_INT64:
+            bson_append_int64(bson, key, -1, *((bson_int64_t *)val));
+            break;
+        case BCONT_MAXKEY:
+            bson_append_maxkey(bson, key, -1);
+            break;
+        case BCONT_MINKEY:
+            bson_append_minkey(bson, key, -1);
+            break;
         case BCONT_BSON_ARRAY: {
             bson_t * child = *((bson_t **)val);
 
@@ -235,7 +272,7 @@ void bcon__DUMP(bcon_t ** in, int is_array, UT_string * s, int indent)
             type = bcon_token(in, &ptr);
 
             if (type == BCONT_END) {
-            } else if (type == BCONT_STRING) {
+            } else if (type == BCONT_UTF8) {
                 key = *(char **)ptr;
 
                 utstring_printf(s, "%-*s\"%s\" : ", indent + 2, "", key);
@@ -247,7 +284,7 @@ void bcon__DUMP(bcon_t ** in, int is_array, UT_string * s, int indent)
         }
 
         switch (type) {
-            case BCONT_STRING:
+            case BCONT_UTF8:
                 utstring_printf(s, "\"%s\"", *(char **)ptr);
                 break;
             case BCONT_BCON_DOCUMENT:
@@ -258,10 +295,22 @@ void bcon__DUMP(bcon_t ** in, int is_array, UT_string * s, int indent)
                 child = *(bcon_t **)ptr;
                 bcon__DUMP(&child, 1, s, indent + 2);
                 break;
+            case BCONT_BCON_CODEWSCOPE: {
+                bcon_code_t * code = *(bcon_code_t **)ptr;
+
+                utstring_printf(s, "%s(", BCON_TYPE_ENUM_STR[type]);
+                bcon__DUMP(&code->scope, 0, s, indent + 2);
+                utstring_printf(s, "%-*s)", indent, "");
+                break;
+            }
             case BCONT_ERROR:
                 utstring_printf(s, "<ERROR HERE>");
                 return;
             case BCONT_END:
+                if (! is_array) {
+                    utstring_printf(s, "<ERROR HERE>");
+                    return;
+                }
                 keep_going = 0;
                 break;
             default:

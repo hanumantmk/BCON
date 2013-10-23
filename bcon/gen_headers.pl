@@ -37,20 +37,25 @@ while (my $row = <$rows>) {
 
     print $bcon_enum join("", map { "BCONT_$_$name,\n" } ('', 'R', 'P'));
     print $bcon_enum_str join("", map { "\"BCONT_$_$name\",\n" } ('', 'R', 'P'));
-    print $bcon_sub_symbols join("", map { "#define BCON_$_$name(val) BCON_MAGIC, .type = BCONT_$_$name, .$_$name = (val)\n" } ('', 'R', 'P'));
 
-    my ($type) = ($complex_type =~ /^([\w ]+)/);
-    $complex_type =~ s/[^*]//g;
+    if ($complex_type) {
+        print $bcon_sub_symbols join("", map { "#define BCON_$_$name(val) BCON_MAGIC, .type = BCONT_$_$name, .$_$name = (val)\n" } ('', 'R', 'P'));
 
-    my $n = length($complex_type);
+        my ($type) = ($complex_type =~ /^([\w ]+)/);
+        $complex_type =~ s/[^*]//g;
 
-    print $bcon_union "$type ", join(", ", map { ("*" x ($n++)) . "$_$name" } ('', 'R', 'P')), ";\n";
+        my $n = length($complex_type);
 
-    print $bcon_indirection join("\n",
-        "case BCONT_$name: *out = (void *)(&(in->$name)); break;",
-        "case BCONT_R$name: *out = (void *)(in->R$name); type = BCONT_$name; break;",
-        "case BCONT_P$name: *out = (void *)(*(in->P$name)); type = BCONT_$name; break;"
-    ), "\n";
+        print $bcon_union "$type ", join(", ", map { ("*" x ($n++)) . "$_$name" } ('', 'R', 'P')), ";\n";
+
+        print $bcon_indirection join("\n",
+            "case BCONT_$name: *out = (void *)(&(in->$name)); break;",
+            "case BCONT_R$name: *out = (void *)(in->R$name); type = BCONT_$name; break;",
+            "case BCONT_P$name: *out = (void *)(*(in->P$name)); type = BCONT_$name; break;"
+        ), "\n";
+    } else {
+        print $bcon_sub_symbols "#define BCON_$name BCON_MAGIC, .type = BCONT_$name, 0\n";
+    }
 }
 
 open my $bcon_gen_macros, "> bcon_gen_macros.h" or die "Couldn't open bcon_gen_macros.h: $!";

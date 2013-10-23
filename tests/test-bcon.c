@@ -39,6 +39,8 @@ int main(int argc, char ** argv)
             "lol", BCON_ARRAY("hi", BCON_DOUBLE(5.5), BCON_DOUBLE(5.6), BCON_DOUBLE(5.7), "bye"),
         ),
         "binary", BCON_BINARY(BSON_SUBTYPE_BINARY, "12345678901", 11),
+        "codewscope", BCON_CODEWSCOPE("print x;", "x", BCON_DOUBLE(10)),
+        "code", BCON_CODEWSCOPE("print 10;"),
     );
 
     bcon_DUMP_AS_JSON(bcon);
@@ -47,8 +49,10 @@ int main(int argc, char ** argv)
 
     bcon_t * broken_bcon = BCON(
         "foo", "bar",
-        "bar", "uh",
-        BCON_INT32(10),
+        "bar", BCON_DOC(
+            "foo",
+        ),
+        "foo",
     );
 
     bcon_DUMP(broken_bcon);
