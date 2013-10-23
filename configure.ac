@@ -11,6 +11,7 @@ LT_INIT
 AM_INIT_AUTOMAKE([1.10])
 
 # Checks for programs.
+AM_PATH_CHECK()
 AC_PROG_CC_C99
 AC_CHECK_PROG(PERL, perl, perl)
 

@@ -54,6 +54,7 @@ while (my $row = <$rows>) {
             "case BCONT_P$name: *out = (void *)(*(in->P$name)); type = BCONT_$name; break;"
         ), "\n";
     } else {
+        print $bcon_indirection "case BCONT_$name: break;\n";
         print $bcon_sub_symbols "#define BCON_$name BCON_MAGIC, .type = BCONT_$name, 0\n";
     }
 }

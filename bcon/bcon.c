@@ -199,7 +199,7 @@ int bcon_to_bson_put_value(bson_t * bson, const char * key, void * val, bcon_typ
         case BCONT_INT32:
             bson_append_int32(bson, key, -1, *((bson_int32_t *)val));
             break;
-        case BCONT_TIMESTAMP: {
+        case BCONT_BCON_TIMESTAMP: {
             bcon_timestamp_t * ts = *((bcon_timestamp_t **)val);
 
             bson_append_timestamp(bson, key, -1, ts->timestamp, ts->increment);
@@ -272,6 +272,8 @@ void bcon__DUMP(bcon_t ** in, int is_array, UT_string * s, int indent)
             type = bcon_token(in, &ptr);
 
             if (type == BCONT_END) {
+                keep_going = 0;
+                break;
             } else if (type == BCONT_UTF8) {
                 key = *(char **)ptr;
 

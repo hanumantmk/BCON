@@ -14,7 +14,7 @@ bcon_code_t *	bcon_code
 char *	symbol
 bcon_code_t *	bcon_codewscope
 bson_int32_t	int32
-bcon_timestamp_t *	timestamp
+bcon_timestamp_t *	bcon_timestamp
 bson_int64_t	int64
 	maxkey
 	minkey

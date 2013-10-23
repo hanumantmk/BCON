@@ -31,8 +31,11 @@
 #define BCON_DOC(...) BCON_BCON_DOCUMENT(BCON( __VA_ARGS__ ))
 #define BCON_ARRAY(...) BCON_BCON_ARRAY(BCON( __VA_ARGS__ ))
 #define BCON_BINARY(subtype, binary, length) BCON_BIN(((bcon_binary_t []){{subtype, (uint8_t *)(binary), length}}))
+#define BCON_REGEX(...) BCON_BCON_REGEX(((bcon_regex_t []){{ __VA_ARGS__ }}))
+#define BCON_TIMESTAMP(...) BCON_BCON_TIMESTAMP(((bcon_timestamp_t []){{ __VA_ARGS__ }}))
+#define BCON_DBPOINTER(...) BCON_BCON_DBPOINTER(((bcon_dbpointer_t []){{ __VA_ARGS__ }}))
 #define BCON_CODEWSCOPE(code, ...) BCON_BCON_CODEWSCOPE(((bcon_code_t []){{code, BCON( __VA_ARGS__ )}}))
-#define BCON_CODE(code) BCON_BCON_CODEWSCOPE(((bcon_code_t []){{code, 0}}))
+#define BCON_CODE(code) BCON_BCON_CODE(((bcon_code_t []){{code, 0}}))
 
 extern char * BCON_MAGIC;
 

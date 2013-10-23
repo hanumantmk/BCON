@@ -1,17 +1,16 @@
 noinst_PROGRAMS = \
 	test-bcon
 
-TEST_PROGS = \
+TESTS = test-bcon
+
+check_PROGRAMS = \
 	test-bcon
 
 AM_CPPFLAGS = \
 	-Ibcon \
+	$(CHECK_CFLAGS) \
 	$(BSON_CFLAGS)
 
 test_bcon_SOURCES = tests/test-bcon.c
-test_bcon_LDADD = libbcon.la
+test_bcon_LDADD = libbcon.la $(CHECK_LIBS)
 
-test: $(TEST_PROGS)
-	@ for TEST_PROG in $(TEST_PROGS) ; do \
-		libtool --mode=execute $$VALGRIND ./$$TEST_PROG ; \
-	done
