@@ -1,16 +1,23 @@
-noinst_PROGRAMS = \
-	test-bcon
+noinst_LTLIBRARIES = libbcon_test.la
 
-TESTS = test-bcon
+libbcon_test_la_SOURCES = tests/bcon-test.c
+libbcon_test_la_LIBADD = \
+	libbcon.la \
+	$(CHECK_LIBS)
+
+noinst_PROGRAMS = \
+	test-bcon-basic
+
+TESTS = test-bcon-basic
 
 check_PROGRAMS = \
-	test-bcon
+	test-bcon-basic
 
 AM_CPPFLAGS = \
 	-Ibcon \
 	$(CHECK_CFLAGS) \
 	$(BSON_CFLAGS)
 
-test_bcon_SOURCES = tests/test-bcon.c
-test_bcon_LDADD = libbcon.la $(CHECK_LIBS)
+LDADD = libbcon_test.la
 
+test_bcon_basic_SOURCES = tests/test-bcon-basic.c
