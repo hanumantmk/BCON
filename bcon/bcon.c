@@ -26,6 +26,10 @@ char * BCON_MAGIC = "BCON_MAGIC";
 
 static char * BCON_TYPE_ENUM_STR[] = {
 #include "bcon_enum_str.h"
+    "BCONT_ARRAY_START",
+    "BCONT_ARRAY_END",
+    "BCONT_DOC_START",
+    "BCONT_DOC_END",
     "BCONT_END",
     "BCONT_ERROR"
 };
@@ -55,8 +59,25 @@ bcon_type_t bcon_token(bcon_t ** stream, void ** out)
                     break;
             };
         } else {
-            type = BCONT_UTF8;
-            *out = (void *)*stream;
+           switch ((*stream)->UTF8[0]) {
+             case '{' :
+                type = BCONT_DOC_START;
+                break;
+             case '}' :
+                 type = BCONT_DOC_END;
+                 break;
+             case '[' :
+                 type = BCONT_ARRAY_START;
+                 break;
+             case ']' :
+                 type = BCONT_ARRAY_END;
+                 break;
+
+             default:
+                 type = BCONT_UTF8;
+                 *out = (void *)*stream;
+                 break;
+           }
         }
     }
 
@@ -65,10 +86,11 @@ bcon_type_t bcon_token(bcon_t ** stream, void ** out)
     return type;
 }
 
-int bcon_to__bson(bcon_t * in, bson_t * bson, int is_array)
+int bcon_to__bson(bcon_t ** in, bson_t * bson, int is_array)
 {
     void * obj = NULL;
     bcon_type_t type;
+    bson_t child;
 
     int i = 0;
     char i_str[100];
@@ -79,9 +101,9 @@ int bcon_to__bson(bcon_t * in, bson_t * bson, int is_array)
             sprintf(i_str, "%d", i);
             key = i_str;
         } else {
-            type = bcon_token(&in, &obj);
+            type = bcon_token(in, &obj);
 
-            if (type == BCONT_END) return 0;
+            if (type == BCONT_END || type == BCONT_DOC_END) return 0;
 
             // TODO deal with indirection here
             assert(type == BCONT_UTF8);
@@ -89,10 +111,26 @@ int bcon_to__bson(bcon_t * in, bson_t * bson, int is_array)
             key = *((char **)obj);
         }
 
-        type = bcon_token(&in, &obj);
+        type = bcon_token(in, &obj);
 
         switch(type) {
             case BCONT_END:
+                return is_array ? 0 : 1;
+                break;
+            case BCONT_DOC_START:
+                bson_append_document_begin(bson, key, -1, &child);
+                if (bcon_to__bson(in, &child, 0)) return 1;
+                bson_append_document_end(bson, &child);
+                break;
+            case BCONT_DOC_END:
+                return 0;
+                break;
+            case BCONT_ARRAY_START:
+                bson_append_array_begin(bson, key, -1, &child);
+                if (bcon_to__bson(in, &child, 1)) return 1;
+                bson_append_array_end(bson, &child);
+                break;
+            case BCONT_ARRAY_END:
                 return is_array ? 0 : 1;
                 break;
             default:
@@ -108,7 +146,7 @@ int bcon_to__bson(bcon_t * in, bson_t * bson, int is_array)
 
 char * bcon_to_bson(bcon_t * in, bson_t * bson)
 {
-    int r = bcon_to__bson(in, bson, 0);
+    int r = bcon_to__bson(&in, bson, 0);
 
     if (r) {
         return bcon_dump(in);
@@ -132,12 +170,12 @@ int bcon_to_bson_put_value(bson_t * bson, const char * key, void * val, bcon_typ
             break;
         case BCONT_BCON_DOCUMENT:
             bson_append_document_begin(bson, key, -1, &child);
-            if (bcon_to__bson(*((bcon_t **)val), &child, 0)) return 1;
+            if (bcon_to__bson(((bcon_t **)val), &child, 0)) return 1;
             bson_append_document_end(bson, &child);
             break;
         case BCONT_BCON_ARRAY:
             bson_append_array_begin(bson, key, -1, &child);
-            if (bcon_to__bson(*((bcon_t **)val), &child, 1)) return 1;
+            if (bcon_to__bson(((bcon_t **)val), &child, 1)) return 1;
             bson_append_array_end(bson, &child);
             break;
         case BCONT_BIN: {
@@ -184,9 +222,10 @@ int bcon_to_bson_put_value(bson_t * bson, const char * key, void * val, bcon_typ
             break;
         case BCONT_BCON_CODEWSCOPE: {
             bcon_code_t * code = *((bcon_code_t **)val);
+            bcon_t ** child_bcon = &code->scope;
 
             bson_t * child = bson_new();
-            int r = bcon_to__bson(code->scope, child, 0);
+            int r = bcon_to__bson(child_bcon, child, 0);
 
             if (! r) bson_append_code_with_scope(bson, key, -1, code->code, child);
 

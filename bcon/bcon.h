@@ -41,6 +41,10 @@ extern char * BCON_MAGIC;
 
 typedef enum {
 #include "bcon_enum.h"
+    BCONT_ARRAY_START,
+    BCONT_ARRAY_END,
+    BCONT_DOC_START,
+    BCONT_DOC_END,
     BCONT_END,
     BCONT_ERROR,
 } bcon_type_t;

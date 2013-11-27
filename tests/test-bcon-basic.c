@@ -334,6 +334,75 @@ START_TEST(test_bson_array)
 }
 END_TEST
 
+START_TEST(test_inline_array)
+{
+    bson_t * bson = bson_new();
+    bson_t * child = bson_new();
+    bson_append_utf8(child, "0", -1, "baz", -1);
+    bson_append_array(bson, "foo", -1, child);
+
+    bcon_t * bcon = BCON(
+        "foo", "[",
+            "baz",
+        "]",
+    );
+
+    bcon_eq_bson(bcon, bson);
+
+    bson_destroy(child);
+}
+END_TEST
+
+START_TEST(test_inline_doc)
+{
+    bson_t * bson = bson_new();
+    bson_t * child = bson_new();
+    bson_append_utf8(child, "bar", -1, "baz", -1);
+    bson_append_document(bson, "foo", -1, child);
+
+    bcon_t * bcon = BCON(
+        "foo", "{",
+            "bar", "baz",
+        "}",
+    );
+
+    bcon_eq_bson(bcon, bson);
+
+    bson_destroy(child);
+}
+END_TEST
+
+START_TEST(test_inline_nested)
+{
+    bson_t * bson = bson_new();
+    bson_t * foo = bson_new();
+    bson_t * bar = bson_new();
+    bson_t * third = bson_new();
+    bson_append_utf8(third, "hello", -1, "world", -1);
+    bson_append_int32(bar, "0", -1, 1);
+    bson_append_int32(bar, "1", -1, 2);
+    bson_append_document(bar, "2", -1, third);
+    bson_append_array(foo, "bar", -1, bar);
+    bson_append_document(bson, "foo", -1, foo);
+
+    bcon_t * bcon = BCON(
+        "foo", "{",
+            "bar", "[",
+                BCON_INT32(1), BCON_INT32(2), "{",
+                    "hello", "world",
+                "}",
+            "]",
+        "}",
+    );
+
+    bcon_eq_bson(bcon, bson);
+
+    bson_destroy(foo);
+    bson_destroy(bar);
+    bson_destroy(third);
+}
+END_TEST
+
 void add_tests(Suite * s)
 {
     TCase * core = tcase_create("Basic");
@@ -359,6 +428,9 @@ void add_tests(Suite * s)
     tcase_add_test(core, test_minkey);
     tcase_add_test(core, test_bson_document);
     tcase_add_test(core, test_bson_array);
+    tcase_add_test(core, test_inline_array);
+    tcase_add_test(core, test_inline_doc);
+    tcase_add_test(core, test_inline_nested);
     suite_add_tcase(s, core);
 
     return;
